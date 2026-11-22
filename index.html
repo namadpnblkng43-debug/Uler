@@ -19,6 +19,7 @@ h1{font-size:20px;margin:6px 0;text-shadow:2px 2px #000;text-align:center}
 .c.a{background:var(--g1)}.c.b{background:var(--g2)}
 .c.dirt{background:var(--dirt,#8b5a2b)}.c.gold{background:#e5c100;color:#000;text-shadow:none}
 svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.wrap.tall{aspect-ratio:1/2}.wrap.tall .tok{height:auto;aspect-ratio:1}
 .tok{position:absolute;width:5%;height:5%;border:2px solid #000;transition:left .25s,top .25s;z-index:3}
 #hud{background:var(--panel);border:3px solid #000;padding:10px;margin-top:10px;display:flex;align-items:center;gap:12px;justify-content:space-between}
 #die{width:56px;height:56px;background:#fff;color:#000;border:3px solid #000;display:flex;align-items:center;justify-content:center;font-size:32px}
@@ -104,6 +105,8 @@ h1{padding:0 52px;font-size:17px}
 #bigdie.txt{display:block}
 #bigdie.txt .tilt{display:none}
 #bigdie.txt #dtxt{display:flex;position:absolute;inset:0;align-items:center;justify-content:center;font-size:calc(var(--s)*.5);background:#fff;color:#000;border:6px solid #000;border-radius:18px}
+.dod .f12{position:absolute;background:#111;backface-visibility:hidden}.dod .f12 b{position:absolute;inset:0;background:linear-gradient(135deg,#ff6e40,#b71c1c);display:flex;align-items:center;justify-content:center}.dod .f12 span{font-size:calc(var(--s)*.17);color:#fff;text-shadow:2px 2px 0 #000;font-weight:bold}
+#bigdie.txt .tilt{display:none}
 /* ===== EVENT ===== */
 .tok.frozen{filter:hue-rotate(160deg) brightness(1.4) saturate(.6);box-shadow:0 0 8px 3px #9ff}
 .trl{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
@@ -173,7 +176,7 @@ h1{padding:0 52px;font-size:17px}
   <div class="row" id="np"></div>
   <button class="btn" id="start">MULAI GAME</button>
   <button class="btn" id="mpBtn">MULTIPLAYER</button>
-  <p style="font-size:13px;opacity:.85">🪜 Tangga = naik &nbsp; 💚 Creeper = turun<br>Harus pas di kotak 100 untuk menang (kelebihan akan mundur).</p>
+  <p style="font-size:13px;opacity:.85">🪜 Tangga = naik &nbsp; 💚 Creeper = turun<br>Harus pas di kotak akhir (100, Hard Mode 200) untuk menang (kelebihan akan mundur).</p>
 </div>
 <div id="mp-panel" hidden style="width:100%;max-width:520px;text-align:center">
   <div id="mp-lobby">
@@ -206,6 +209,8 @@ const COL=["#e53935","#1e88e5","#fdd835","#8e24aa","#fb8c00"];
 const NAMES=["Pemain 1","Pemain 2","Pemain 3","Pemain 4","Pemain 5"];
 let N=2,P=[],cur=0,busy=false;
 let HM=false;   // Hard Mode
+let ENDN=100,ROWS=10,SIDES=6;   // Hard Mode: papan 200 kotak + dadu D12
+function setEnd(){ENDN=HM?200:100;ROWS=ENDN/10;SIDES=HM?12:6}
 function MAXHP(){return window.CFG&&CFG.on?CFG.maxHp:(HM?7:10)}
 let TH;
 const THEMES=[
@@ -220,24 +225,25 @@ const THEMES=[
 ];
 function applyTheme(){const r=document.documentElement.style;r.setProperty("--g1",TH.a);r.setProperty("--g2",TH.b);r.setProperty("--dirt",TH.dirt);r.setProperty("--bg",TH.bg);
   r.setProperty("--fc",TH.fc||"#fff");r.setProperty("--ts",TH.fc?"none":"1px 1px #000");$("biome").textContent="🌍 Biome: "+TH.n}
-function genMap(){const U=new Set([1,100]),l={},s={},r=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
-  const add=(o,up)=>{for(let t=0;t<300;t++){const a=r(2,98),d=r(10,45),b=up?a+d:a-d;
-    if(b<2||b>99||U.has(a)||U.has(b)||Math.floor((a-1)/10)==Math.floor((b-1)/10))continue;U.add(a);U.add(b);o[a]=b;return}};
-  for(let i=0;i<8;i++){add(l,true);add(s,false)}return[l,s]}
+function genMap(){setEnd();const U=new Set([1,ENDN]),l={},s={},r=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+  const add=(o,up)=>{for(let t=0;t<300;t++){const a=r(2,ENDN-2),d=r(10,ENDN*.45|0),b=up?a+d:a-d;
+    if(b<2||b>ENDN-1||U.has(a)||U.has(b)||Math.floor((a-1)/10)==Math.floor((b-1)/10))continue;U.add(a);U.add(b);o[a]=b;return}};
+  const K=HM?16:8;for(let i=0;i<K;i++){add(l,true);add(s,false)}return[l,s]}
 const $=id=>document.getElementById(id);
-function pos(n){const r=Math.floor((n-1)/10),i=(n-1)%10,c=r%2?9-i:i;return{x:c*10+5,y:(9-r)*10+5}}
+function pos(n){const r=Math.floor((n-1)/10),i=(n-1)%10,c=r%2?9-i:i;return{x:c*10+5,y:(ROWS-1-r)*10+5}}
 // setup
 for(let i=2;i<=5;i++){const b=document.createElement("button");b.className="btn"+(i==2?" on":"");b.textContent=i;b.onclick=()=>{N=i;[...$("np").children].forEach(x=>x.classList.toggle("on",x==b))};$("np").appendChild(b)}
 $("start").onclick=async()=>{for(let i=0;i<N;i++){NAMES[i]=await pickName(i)}for(let i=0;i<N;i++){SKN[i]=await pickSkin(i);SCH[i]=await pickSchool(i)}$("setup").hidden=true;$("game").hidden=false;init()};
 $("again").onclick=()=>{if(!confirm("⚠ Yakin mulai lagi? Progres game ini akan hilang."))return;$("game").hidden=true;$("setup").hidden=false;document.querySelectorAll(".bd").forEach(e=>e.remove())};
 function init(){
-  [L,S]=genMap();TR=[];TH=THEMES[Math.floor(Math.random()*THEMES.length)];applyTheme();const bd=$("board");bd.innerHTML="";
+  setEnd();[L,S]=genMap();TR=[];TH=THEMES[Math.floor(Math.random()*THEMES.length)];applyTheme();const bd=$("board");bd.innerHTML="";
   const cells=[];
-  for(let r=9;r>=0;r--)for(let c=0;c<10;c++){const n=r*10+(r%2?9-c:c)+1;const d=document.createElement("div");
+  $("board").parentNode.classList.toggle("tall",ROWS>10);$("board").style.gridTemplateRows="repeat("+ROWS+",1fr)";$("ov").setAttribute("viewBox","0 0 100 "+ROWS*10);
+  for(let r=ROWS-1;r>=0;r--)for(let c=0;c<10;c++){const n=r*10+(r%2?9-c:c)+1;const d=document.createElement("div");
     d.className="c "+((r+c)%2?"a":"b");
-    if(n==100)d.className="c gold";else if(L[n])d.className="c dirt";else if(S[n])d.className="c dirt";
-    d.textContent=n==100?"100⭐":n;
-    if(n!=100&&!L[n]&&!S[n]&&Math.random()<.14){const e=document.createElement("span");e.className="dc";e.textContent=TH.d[Math.floor(Math.random()*TH.d.length)];d.appendChild(e)}
+    if(n==ENDN)d.className="c gold";else if(L[n])d.className="c dirt";else if(S[n])d.className="c dirt";
+    d.textContent=n==ENDN?ENDN+"⭐":n;
+    if(n!=ENDN&&!L[n]&&!S[n]&&Math.random()<.14){const e=document.createElement("span");e.className="dc";e.textContent=TH.d[Math.floor(Math.random()*TH.d.length)];d.appendChild(e)}
     bd.appendChild(d)}
   const ov=$("ov");let h="";
   for(const[a,b]of Object.entries(L)){const p=pos(+a),q=pos(b);
@@ -255,10 +261,9 @@ function init(){
   cur=0;busy=false;$("roll").disabled=false;$("die").textContent="🎲";renderPw();
   turnMsg();renderList();
 }
-function place(p,i){const q=pos(Math.max(p.n,1));const off=[[-2.3,-2.3],[2.3,-2.3],[-2.3,2.3],[2.3,2.3],[0,0]][i];
-  const sx=p.n==0?-1+i*5.5:q.x+off[0],sy=p.n==0?103.5:q.y+off[1];
-  p.el.style.left=(p.n==0?sx:sx-2.5)+"%";p.el.style.top=(p.n==0?sy-5:sy-2.5)+"%";
-  if(p.n==0){p.el.style.left=(2+i*6)+"%";p.el.style.top="94.5%"}}
+function place(p,i){const q=pos(Math.max(p.n,1)),k=10/ROWS,off=[[-2.3,-2.3],[2.3,-2.3],[-2.3,2.3],[2.3,2.3],[0,0]][i];
+  if(p.n==0){p.el.style.left=(2+i*6)+"%";p.el.style.top=(ROWS*10-5.5)*k-0+"%";p.el.style.top=((ROWS*10-5.5)/(ROWS*10)*100)+"%";return}
+  p.el.style.left=(q.x+off[0]-2.5)+"%";p.el.style.top=((q.y+off[1]-2.5)/(ROWS*10)*100)+"%"}
 function turnMsg(){$("msg").innerHTML=`<span class="dot" style="background:${P[cur].c}"></span>Giliran ${P[cur].name}`}
 function renderList(){$("list").innerHTML=P.map((p,i)=>`<span style="background:${i==cur?p.c+"55":"transparent"};border-color:${p.c}">${p.name}: ${p.n}</span>`).join("")}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -319,8 +324,8 @@ async function usePower(k){
   if(busy)return;const p=P[cur],w=p.pw[k];busy=true;$("roll").disabled=true;p.pw.splice(k,1);renderPw();
   const others=P.map((x,j)=>j).filter(j=>j!=cur);
   PK={id:w.id,others,done:0};if(!["push","freeze","curi","ayam","panah","waktu"].includes(w.id)){PK.done=1;fx(w.id);hitTok(p)}
-  if(w.id=="boost"){if(p.n+5>100){$("msg").textContent="Roket kelebihan dari 100, tidak bergerak!";await sleep(900)}
-    else{await walk(p,cur,p.n+5);await settle(p,cur);renderList();if(p.n==100){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}}
+  if(w.id=="boost"){if(p.n+5>ENDN){$("msg").textContent="Roket kelebihan dari 100, tidak bergerak!";await sleep(900)}
+    else{await walk(p,cur,p.n+5);await settle(p,cur);renderList();if(p.n==ENDN){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}}
   else if(w.id=="dbl"){p.dbl=true;$("msg").textContent="🎲🎲 Kocokan berikutnya 2 dadu!";await sleep(900)}
   else if(w.id=="shield"){p.shield=true;$("msg").textContent="🛡 Perisai aktif!";await sleep(900)}
   else if(w.id=="push"||w.id=="freeze"){
@@ -331,25 +336,25 @@ async function usePower(k){
     if(q.n<=p.n){p.pw.splice(k,0,w);$("msg").textContent="Kamu sudah paling depan, skill dikembalikan.";await sleep(1200)}
     else{$("msg").textContent=`⭐ ${p.name} merebut posisi ${q.name}!`;await sleep(600);hitTok(p);hitTok(q);[p.n,q.n]=[q.n,p.n];place(p,cur);place(q,t);await sleep(900)}}
   else if(w.id=="magnet"){const ahead=others.filter(j=>P[j].n>p.n).sort((a,b)=>P[b].n-P[a].n);if(!ahead.length){p.pw.splice(k,0,w);$("msg").textContent="Tidak ada lawan di depan, skill dikembalikan.";await sleep(1200)}else{const t=ahead[0],q=P[t];$("msg").textContent=`🧲 ${p.name} menarik ${q.name} mundur 2 kotak!`;await sleep(600);await walk(q,t,Math.max(0,q.n-2));await settle(q,t)}}
-  else if(w.id=="ramuan"){$("msg").textContent="🌿 Ramuan! Maju 3 kotak";await sleep(600);await walk(p,cur,Math.min(100,p.n+3));await settle(p,cur);renderList();if(p.n==100){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}
+  else if(w.id=="ramuan"){$("msg").textContent="🌿 Ramuan! Maju 3 kotak";await sleep(600);await walk(p,cur,Math.min(ENDN,p.n+3));await settle(p,cur);renderList();if(p.n==ENDN){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}
   else if(w.id=="kapak"){const ks=Object.keys(S).map(Number).filter(x=>x>p.n).sort((a,b)=>a-b);if(!ks.length){p.pw.splice(k,0,w);$("msg").textContent="Tidak ada Creeper di depan, skill dikembalikan.";await sleep(1200)}else{delete S[ks[0]];$("msg").textContent=`🪓 Creeper di kotak ${ks[0]} hancur!`;await sleep(900)}}
-  else if(w.id=="badai"){$("msg").textContent="🌪 BADAI! Semua lawan terlempar acak!";await sleep(800);for(const j of others){const to=Math.max(0,Math.min(99,P[j].n+RND(-5,5)));await walk(P[j],j,to);await settle(P[j],j)}}
+  else if(w.id=="badai"){$("msg").textContent="🌪 BADAI! Semua lawan terlempar acak!";await sleep(800);for(const j of others){const to=Math.max(0,Math.min(ENDN-1,P[j].n+RND(-5,5)));await walk(P[j],j,to);await settle(P[j],j)}}
   else if(w.id=="mahkota"){const ahead=others.filter(j=>P[j].n>p.n);$("msg").textContent="👑 Mahkota Raja! Lawan di depan mundur 5 kotak!";await sleep(800);for(const j of ahead){await walk(P[j],j,Math.max(0,P[j].n-5));await settle(P[j],j)}}
   else if(w.id=="meteor"){killCreepers();$("msg").textContent="☄ METEOR! Semua Creeper di papan hancur!";await sleep(1200)}
   else if(w.id=="tnt"){ladBreak(5);
     $("msg").textContent="💥 BOOM! Semua tangga hancur selama 5 giliran!";await sleep(1500)}
   const nm=()=>others.map(j=>P[j].name);
   if(w.id=="curi"){const t=others[await pick("Pakai dadu siapa?",nm())],q=P[t],s=Math.max(1,q.last||1);
-    if(p.n+s>100){$("msg").textContent="Kelebihan dari 100, tidak bergerak!";await sleep(900)}
-    else{$("msg").textContent=`🔄 ${p.name} memakai dadu ${q.name}: maju ${s}!`;await sleep(600);await walk(p,cur,p.n+s);await settle(p,cur);renderList();if(p.n==100){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}}
+    if(p.n+s>ENDN){$("msg").textContent="Kelebihan dari "+ENDN+", tidak bergerak!";await sleep(900)}
+    else{$("msg").textContent=`🔄 ${p.name} memakai dadu ${q.name}: maju ${s}!`;await sleep(600);await walk(p,cur,p.n+s);await settle(p,cur);renderList();if(p.n==ENDN){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}}
   else if(w.id=="tangga"){const ks=Object.keys(L).map(Number).filter(x=>x>p.n).sort((a,b)=>a-b);
     if(!ks.length){p.pw.splice(k,0,w);$("msg").textContent="Tidak ada tangga di depan, skill dikembalikan.";await sleep(1200)}
     else{p.n=ks[0];place(p,cur);await sleep(600);await settle(p,cur)}}
   else if(w.id=="peek"){p.peek=true;$("msg").textContent="🧭 Kuis berikutnya tinggal 2 pilihan!";await sleep(900)}
   else if(w.id=="lucky"){p.lucky=true;$("msg").textContent="🍀 Kocokan berikutnya bukan angka 1!";await sleep(900)}
-  else if(w.id=="trap"){const ld=Math.max(...others.map(j=>P[j].n)),sq=Math.min(99,ld+1+Math.floor(Math.random()*6));TR.push({sq,o:cur});$("msg").textContent=`🧱 ${p.name} memasang jebakan tersembunyi di depan lawan!`;await sleep(1200)}
+  else if(w.id=="trap"){const ld=Math.max(...others.map(j=>P[j].n)),sq=Math.min(ENDN-1,ld+1+Math.floor(Math.random()*6));TR.push({sq,o:cur});$("msg").textContent=`🧱 ${p.name} memasang jebakan tersembunyi di depan lawan!`;await sleep(1200)}
   else if(w.id=="ayam"){const t=others[await pick("Pindahkan siapa?",nm())],q=P[t],dr=await pick("Arah?",["Maju 2","Mundur 2"]);
-    const to=Math.min(99,Math.max(0,q.n+(dr?-2:2)));$("msg").textContent=`🐔 ${q.name} digeser ke kotak ${to}`;await sleep(600);await walk(q,t,to);await settle(q,t)}
+    const to=Math.min(ENDN-1,Math.max(0,q.n+(dr?-2:2)));$("msg").textContent=`🐔 ${q.name} digeser ke kotak ${to}`;await sleep(600);await walk(q,t,to);await settle(q,t)}
   else if(w.id=="lava"){$("msg").textContent="🌋 LAVA! Semua lawan mundur 3 kotak!";await sleep(800);for(const j of others){hitTok(P[j]);await walk(P[j],j,Math.max(0,P[j].n-3));await settle(P[j],j)}}
   else if(w.id=="panah"){const t=others[await pick("Panah siapa?",nm())],q=P[t];$("msg").textContent=`🏹 ${q.name} dipanah kembali ke start!`;await sleep(800);q.n=0;place(q,t);await sleep(600)}
   else if(w.id=="peti"){const NM=POW.filter(x=>!x.op);for(let z=0;z<3&&p.pw.length<2+(p.extraCap||0);z++)p.pw.push(NM[Math.floor(Math.random()*NM.length)]);$("msg").textContent="🎁 Peti Harta: tas skill terisi penuh!";await sleep(1200)}
@@ -366,7 +371,7 @@ async function quiz(){
     if(ok){
       if(lv=="easy"){$("msg").textContent=`✅ ${p.name} benar, soal mudah tidak dapat hadiah.`;await sleep(1000)}
       else{
-        if(p.n+3>100){$("msg").textContent=`${p.name} benar, tapi kelebihan dari 100!`;await sleep(900)}
+        if(p.n+3>ENDN){$("msg").textContent=`${p.name} benar, tapi kelebihan dari 100!`;await sleep(900)}
         else{$("msg").textContent=`✅ ${p.name} benar, maju 3 kotak!`;await sleep(400);await walk(p,i,p.n+3);await settle(p,i)}
         if((window.CFG&&CFG.on)||lv=="hard"||Math.random()<.3)await grantNM(p,i);
       }
@@ -374,7 +379,7 @@ async function quiz(){
       await backBy(p,i,lv=="easy"?2:lv=="mid"?3:5);
     }
     renderList();
-    if(p.n==100){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return true}
+    if(p.n==ENDN){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return true}
   }
   return false;
 }
@@ -437,29 +442,29 @@ async function grantNM(p,i){const NM=POW.filter(x=>!x.op),w=NM[Math.floor(Math.r
 $("roll").onclick=async()=>{
   if(busy)return;busy=true;$("roll").disabled=true;renderPw();
   const p=P[cur];p.prev=p.n;let d;
-  for(let i=0;i<10;i++){d=1+Math.floor(Math.random()*6);$("die").textContent="⚀⚁⚂⚃⚄⚅"[d-1];await sleep(60)}
-  if(p.lucky){p.lucky=false;if(d==1)d=2+Math.floor(Math.random()*5)}
+  for(let i=0;i<10;i++){d=1+Math.floor(Math.random()*SIDES);$("die").textContent=SIDES==6?"⚀⚁⚂⚃⚄⚅"[d-1]:String(d);await sleep(60)}
+  if(p.lucky){p.lucky=false;if(d==1)d=2+Math.floor(Math.random()*(SIDES-1))}
   if(p.minRoll){if(d<p.minRoll){d=p.minRoll;$("die").textContent=d}p.minRoll=0}
-  if(p.cheat){p.cheat=false;d=6;$("die").textContent="⚅"}
+  if(p.cheat){p.cheat=false;d=SIDES;$("die").textContent=SIDES==6?"⚅":String(d)}
   
-  if(p.reroll){const was=d==1;p.reroll=false;if(was){d=1+Math.floor(Math.random()*6);$("msg").textContent="🌾 Roti! Kocok ulang: "+d;await sleep(700)}}
+  if(p.reroll){const was=d==1;p.reroll=false;if(was){d=1+Math.floor(Math.random()*SIDES);$("msg").textContent="🌾 Roti! Kocok ulang: "+d;await sleep(700)}}
   if(p.leap){p.leap=false;const bn=p.leapFix||(1+Math.floor(Math.random()*2));p.leapFix=0;d+=bn;$("msg").textContent="🧪 Ramuan Lompat +"+bn;await sleep(600)}
   if(p.clockD){d=p.clockD;p.clockD=null;$("die").textContent=d}
   if(p.skip){p.skip--;d=0;$("die").textContent="🧊";$("msg").textContent=`🧊 ${p.name} dibekukan, giliran dilewati!`;await sleep(1300)}
-  else if(p.dbl){p.dbl=false;d+=1+Math.floor(Math.random()*6);$("die").textContent=d;$("msg").textContent=`🎲🎲 Dadu ganda! Total ${d}`;await sleep(700)}
+  else if(p.dbl){p.dbl=false;d+=1+Math.floor(Math.random()*SIDES);$("die").textContent=d;$("msg").textContent=`🎲🎲 Dadu ganda! Total ${d}`;await sleep(700)}
   p.last=d;let target=p.n+d;
-  if(target>100){$("msg").textContent=`${p.name} dapat ${d}, kelebihan! Mundur sedikit.`;
-    const over=target-100;target=100-over}
+  if(target>ENDN){$("msg").textContent=`${p.name} dapat ${d}, kelebihan! Mundur sedikit.`;
+    const over=target-ENDN;target=ENDN-over}
   // step move
   const dir=target>=p.n?1:-1;
-  if(p.n+d<=100){while(p.n<target){p.n++;place(p,cur);sfxStep();await sleep(180)}}
-  else{while(p.n<100){p.n++;place(p,cur);await sleep(150)}while(p.n>target){p.n--;place(p,cur);await sleep(150)}}
+  if(p.n+d<=ENDN){while(p.n<target){p.n++;place(p,cur);sfxStep();await sleep(180)}}
+  else{while(p.n<ENDN){p.n++;place(p,cur);await sleep(150)}while(p.n>target){p.n--;place(p,cur);await sleep(150)}}
   if(L[p.n]){$("msg").textContent=`🪜 ${p.name} naik tangga ke ${L[p.n]}!`;await sleep(500);sfxUp();p.n=L[p.n];place(p,cur);await sleep(500)}
   else if(S[p.n]){$("msg").textContent=`💥 Creeper! ${p.name} turun ke ${S[p.n]}`;await sleep(500);if(p.shield){p.shield=false;$("msg").textContent="🛡 Perisai menahan Creeper!";await sleep(700)}else{sfxBoom();p.n=S[p.n]}place(p,cur);await sleep(500)}
   renderList();
-  if(p.n==100){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}
-  await trapCheck(p,cur);if(d!=6){cur=(cur+1)%N;if(cur==0){await sleep(400);if(await quiz())return}}else $("msg").textContent=`${p.name} dapat 6, main lagi!`;
-  await sleep(d==6?600:0);
+  if(p.n==ENDN){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}
+  await trapCheck(p,cur);if(d!=SIDES){cur=(cur+1)%N;if(cur==0){await sleep(400);if(await quiz())return}}else $("msg").textContent=`${p.name} dapat ${SIDES}, main lagi!`;
+  await sleep(d==SIDES?600:0);
   turnMsg();renderList();busy=false;renderPw();$("roll").disabled=false;
 };
 $("again").onclick=()=>askYes("Apakah anda yakin?",()=>{$("game").hidden=true;$("setup").hidden=false;document.querySelectorAll(".bd").forEach(e=>e.remove())});
@@ -572,7 +577,7 @@ async function useNew(id,p,i){
   const behind=others.filter(j=>P[j].n<p.n);
   const back=behind.length?behind.reduce((a,b)=>P[b].n>P[a].n?b:a):null;
   switch(id){
-  case "pancing":{const t=others.find(j=>P[j].n==p.n+1);if(t==null)return false;await walk(P[t],t,Math.max(0,P[t].n-2));await settle(P[t],t);await walk(p,i,Math.min(100,p.n+1));await settle(p,i);return true}
+  case "pancing":{const t=others.find(j=>P[j].n==p.n+1);if(t==null)return false;await walk(P[t],t,Math.max(0,P[t].n-2));await settle(P[t],t);await walk(p,i,Math.min(ENDN,p.n+1));await settle(p,i);return true}
   case "susu":{if(!p.skip)return false;p.skip=0;$("msg").textContent="🥛 Status negatif dihapus!";await sleep(900);return true}
   case "kompas":{const nx=p.n+1;const what=L[nx]?"tangga 🪜":S[nx]?"Creeper 💥":"kosong";$("msg").textContent="🧭 Kotak depanmu: "+what;await sleep(1800);return true}
   case "lompat":{p.leap=true;$("msg").textContent="🧪 Kocokan berikutnya +1 atau +2!";await sleep(900);return true}
@@ -582,13 +587,13 @@ async function useNew(id,p,i){
   case "peta":{if(p.pw.length>=2+(p.extraCap||0))return false;const NM=POW.filter(x=>!x.op);p.pw.push(NM[RND(0,NM.length-1)]);$("msg").textContent="📜 Peta Harta memberi skill!";await sleep(1200);return true}
   case "perisaiKulit":{p.shieldQ=true;$("msg").textContent="🛡️ Perisai Kulit aktif!";await sleep(900);return true}
   case "roti":{p.reroll=true;$("msg").textContent="🌾 Kocokan berikutnya bisa diulang jika angka 1!";await sleep(900);return true}
-  case "obor":{await walk(p,i,Math.min(100,p.n+2));return true}
+  case "obor":{await walk(p,i,Math.min(ENDN,p.n+2));return true}
   case "kapakKayu":{const ks=Object.keys(L).map(Number).filter(x=>x>p.n).sort((a,b)=>a-b);if(!ks.length)return false;BLK.push({n:ks[0],to:L[ks[0]]});delete L[ks[0]];$("msg").textContent=`🪓 Tangga di kotak ${ks[0]} terputus!`;await sleep(900);return true}
   case "bulu":{p.feather=true;$("msg").textContent="🪶 Bulu Ayam aktif!";await sleep(900);return true}
   case "magnetKecil":{p.extraCap=(p.extraCap||0)+1;$("msg").textContent="🧲 Slot tas bertambah 1!";await sleep(900);return true}
   case "jam":{const d=RND(1,6);p.clockD=d;$("msg").textContent="🕰️ Angka dadu berikutnya: "+d;await sleep(1500);return true}
   case "kentang":{if(back==null)return false;P[back].skip=(P[back].skip||0)+1;$("msg").textContent=`🥔 ${P[back].name} terkena kentang, lewat 1 giliran!`;await sleep(1000);return true}
-  case "petasan":{await walk(p,i,Math.min(100,p.n+3));await settle(p,i);return true}
+  case "petasan":{await walk(p,i,Math.min(ENDN,p.n+3));await settle(p,i);return true}
   case "kasur":{p.bedCp=true;$("msg").textContent="🛏️ Checkpoint aktif untuk ronde ini!";await sleep(900);return true}
   case "pot":{p.calm=true;$("msg").textContent="🪴 Kuis berikutnya tingkat Mudah!";await sleep(900);return true}
   case "pintu":{TR.push({sq:p.n,o:i,kind:"door"});$("msg").textContent="🚪 Pintu dipasang di kotakmu!";await sleep(900);return true}
@@ -803,7 +808,7 @@ function winFX(){if(WINFX)return;WINFX=true;
 }
 new MutationObserver(()=>{const t=$("msg").textContent||"";if(t.includes("MENANG"))winFX();else WINFX=false}).observe($("msg"),{childList:true,subtree:true,characterData:true});
 // ===== PENANDA VISUAL DI PAPAN =====
-function cellEl(n){const r=Math.floor((n-1)/10),i=(n-1)%10,c=r%2?9-i:i;return $("board").children[(9-r)*10+c]}
+function cellEl(n){const r=Math.floor((n-1)/10),i=(n-1)%10,c=r%2?9-i:i;return $("board").children[(ROWS-1-r)*10+c]}
 function drawMarks(){document.querySelectorAll(".mk").forEach(e=>e.remove());if($("game").hidden)return;
   const put=(n,ch)=>{const e=cellEl(n);if(!e)return;const s=document.createElement("span");s.className="mk";s.textContent=ch;s.style.cssText="position:absolute;left:1px;bottom:0;font-size:min(3.6vw,16px);z-index:2";e.appendChild(s)};
   TR.forEach(t=>{if(t.kind)put(t.sq,t.kind=="wall"?"🧱":"🚪")});
@@ -818,12 +823,12 @@ function ovl(html){const e=document.createElement("div");e.style.cssText="positi
   e.innerHTML=`<div style="background:var(--panel);border:4px solid #000;padding:14px;width:100%;max-width:440px;max-height:85vh;overflow:auto;font-size:12px;line-height:1.5">${html}<div style="text-align:center;margin-top:10px"><button class="btn" id="ovlx">TUTUP</button></div></div>`;
   document.body.appendChild(e);e.querySelector("#ovlx").onclick=()=>e.remove();return e}
 const helpBtn=document.createElement("button");helpBtn.className="btn";helpBtn.textContent="❓ PANDUAN";helpBtn.style.marginTop="8px";$("start").after(helpBtn);
-helpBtn.onclick=()=>ovl(`<div style="font-size:15px;margin-bottom:6px">❓ Cara Main</div><div>1. Kocok dadu di giliranmu, bidak maju.<br>2. Tangga = naik, Creeper = turun.<br>3. Setelah semua kocok, ada kuis: putar roda mata pelajaran, pilih tingkat Mudah/Sedang/Sulit.<br>4. Benar = maju 3 kotak + peluang skill. Salah = mundur.<br>5. Tas skill maksimal 2. Tekan lama skill untuk info, tekan biasa untuk memakai.<br>6. Setiap bidak punya 10 hati. Serangan mengurangi hati. Hati habis = kembali ke start.<br>7. Harus pas di kotak 100 untuk menang.<br>8. Tiap kuis ada batas waktu (mudah 20 / sedang 40 / sulit 60 detik). Waktu habis = salah.<br>9. 🔥 Hard Mode: HP 7, waktu kuis 10/20/35 detik, tidak mengocok dadu dalam 10 detik = beku 1 giliran, peluang Doom &amp; Calamity +15%.<br>10. 🌈 Item Legendary sangat langka: dapat dari kuis sulit.</div><div style="font-size:15px;margin:10px 0 4px">⚡ Daftar Skill</div>${POW.map(w=>`<div style="margin-bottom:4px"><b>${w.n}</b> ${w.op?"🔴 OP":"🟢"}<br>${w.d}</div>`).join("")}${typeof legGuide=="function"?legGuide():""}`);
+helpBtn.onclick=()=>ovl(`<div style="font-size:15px;margin-bottom:6px">❓ Cara Main</div><div>1. Kocok dadu di giliranmu, bidak maju.<br>2. Tangga = naik, Creeper = turun.<br>3. Setelah semua kocok, ada kuis: putar roda mata pelajaran, pilih tingkat Mudah/Sedang/Sulit.<br>4. Benar = maju 3 kotak + peluang skill. Salah = mundur.<br>5. Tas skill maksimal 2. Tekan lama skill untuk info, tekan biasa untuk memakai.<br>6. Setiap bidak punya 10 hati. Serangan mengurangi hati. Hati habis = kembali ke start.<br>7. Harus pas di kotak akhir (100, Hard Mode 200) untuk menang.<br>8. Tiap kuis ada batas waktu (mudah 20 / sedang 40 / sulit 60 detik). Waktu habis = salah.<br>9. 🔥 Hard Mode: papan 200 kotak (finish di 200), dadu D12 3D (dapat 12 = main lagi), HP 7, waktu kuis 10/20/35 detik, tidak mengocok dadu dalam 10 detik = beku 1 giliran, peluang Doom &amp; Calamity +15%.<br>10. 🌈 Item Legendary sangat langka: dapat dari kuis sulit.</div><div style="font-size:15px;margin:10px 0 4px">⚡ Daftar Skill</div>${POW.map(w=>`<div style="margin-bottom:4px"><b>${w.n}</b> ${w.op?"🔴 OP":"🟢"}<br>${w.d}</div>`).join("")}${typeof legGuide=="function"?legGuide():""}`);
 // ===== STATISTIK + RINGKASAN AKHIR =====
 const _aq3=askQ;askQ=async function(p,lv){const ok=await _aq3(p,lv);p.tot=(p.tot||0)+1;if(ok)p.cor=(p.cor||0)+1;return ok};
 const _st3=settle;settle=async function(p,i){const b=p.n,sn=!!S[b]&&!L[b];await _st3(p,i);if(sn&&p.n<b)p.cre=(p.cre||0)+1};
 let SUMM=false;
-new MutationObserver(()=>{const t=$("msg").textContent||"";if(t.includes("MENANG")){if(!SUMM){SUMM=true;setTimeout(()=>{ovl(`<div style="font-size:16px;text-align:center;margin-bottom:8px">🏆 Ringkasan Permainan</div>${P.map(p=>`<div style="margin-bottom:6px"><b>${p.n==100?"👑 ":""}${p.name}</b> (${p.school})<br>Kuis benar: ${p.cor||0}/${p.tot||0} • Kena Creeper: ${p.cre||0} • HP: ${p.hp??MAXHP()}/${MAXHP()} • Posisi: ${p.n}</div>`).join("")}`)},5800)}}else SUMM=false}).observe($("msg"),{childList:true,subtree:true,characterData:true});
+new MutationObserver(()=>{const t=$("msg").textContent||"";if(t.includes("MENANG")){if(!SUMM){SUMM=true;setTimeout(()=>{ovl(`<div style="font-size:16px;text-align:center;margin-bottom:8px">🏆 Ringkasan Permainan</div>${P.map(p=>`<div style="margin-bottom:6px"><b>${p.n==ENDN?"👑 ":""}${p.name}</b> (${p.school})<br>Kuis benar: ${p.cor||0}/${p.tot||0} • Kena Creeper: ${p.cre||0} • HP: ${p.hp??MAXHP()}/${MAXHP()} • Posisi: ${p.n}</div>`).join("")}`)},5800)}}else SUMM=false}).observe($("msg"),{childList:true,subtree:true,characterData:true});
 // ===== PENGATURAN VOLUME =====
 let VOLM=1,VOLS=1,_bgm=false;
 const _ac1=ac;ac=function(){const c=_ac1();if(!c._bus){c._bus=true;const real=c.destination,bus=c.createGain();bus.gain.value=VOLS;bus.connect(real);window.SBUS=bus;Object.defineProperty(c,"destination",{value:bus})}return c};
@@ -879,7 +884,7 @@ async function useInnate(i){
   try{
     if(own=="Jester"){$("msg").textContent="🃏 "+p.name+" meniru "+d.n+"!";await sleep(800)}
     if(nm=="Robot"){p.leap=true;p.leapFix=2;$("msg").textContent="🤖 Overclock! Kocokan berikutnya +2"}
-    else if(nm=="Slime"){if(p.n+3>100){ok=false}else{fx(d.fx);await walk(p,i,p.n+3);await settle(p,i);renderList();if(p.n==100){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}}
+    else if(nm=="Slime"){if(p.n+3>ENDN){ok=false}else{fx(d.fx);await walk(p,i,p.n+3);await settle(p,i);renderList();if(p.n==ENDN){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return}}}
     else if(nm=="Batu"){p.shield=true;$("msg").textContent="🪨 Kulit Batu aktif!"}
     else if(nm=="Kucing"){const a=others.filter(j=>P[j].n>p.n).sort((x,y)=>P[x].n-P[y].n);if(!a.length)ok=false;else{const t=a[0];hitTok(P[t]);$("msg").textContent=`🐱 ${p.name} mencakar ${P[t].name}!`;await sleep(500);await walk(P[t],t,Math.max(0,P[t].n-3));await settle(P[t],t);hurt(t,1)}}
     else if(nm=="Ayam"){const cap=2+(p.extraCap||0);if(p.pw.length>=cap)ok=false;else{const NM=POW.filter(x=>!x.op);const w=NM[RND(0,NM.length-1)];p.pw.push(w);$("msg").textContent=`🥚 Telur Emas: dapat ${w.n}`}}
@@ -931,7 +936,7 @@ const EVENTS=[
 {n:"⚡ PETIR MENYAMBAR",c:"#fff176",d:"Satu pemain acak mundur 4 kotak dan kehilangan 2 hati!",f:async()=>{const j=rp();snd("petir");hitTok(P[j]);$("msg").textContent=`⚡ ${P[j].name} tersambar petir!`;await sleep(700);await backP(j,4);hurt(j,2)}},
 {n:"💚 PENYEMBUH DESA",c:"#69f0ae",d:"Semua pemain pulih 3 hati!",f:async()=>{snd("susu");P.forEach(q=>{q.hp=Math.min(MAXHP(),(q.hp??MAXHP())+3)});renderBadges()}},
 {n:"🧟 SERBUAN ZOMBIE",c:"#8bc34a",d:"Pemain terdepan mundur 4 kotak dan kehilangan 1 hati!",f:async()=>{let l=0;P.forEach((q,j)=>{if(q.n>P[l].n)l=j});snd("pintu");hitTok(P[l]);await sleep(500);await backP(l,4);hurt(l,1)}},
-{n:"🍀 FESTIVAL KEBERUNTUNGAN",c:"#a5d6a7",d:"Pemain paling belakang maju 6 kotak!",f:async()=>{let t=0;P.forEach((q,j)=>{if(q.n<P[t].n)t=j});snd("lucky");fx("lucky");hitTok(P[t]);await walk(P[t],t,Math.min(99,P[t].n+6));await settle(P[t],t)}},
+{n:"🍀 FESTIVAL KEBERUNTUNGAN",c:"#a5d6a7",d:"Pemain paling belakang maju 6 kotak!",f:async()=>{let t=0;P.forEach((q,j)=>{if(q.n<P[t].n)t=j});snd("lucky");fx("lucky");hitTok(P[t]);await walk(P[t],t,Math.min(ENDN-1,P[t].n+6));await settle(P[t],t)}},
 {n:"🏴‍☠️ PENCURI MALAM",c:"#ce93d8",d:"Satu pemain acak kehilangan 1 skill (atau mundur 2 jika tak punya)!",f:async()=>{const hv=P.map((q,j)=>j).filter(j=>P[j].pw.length);snd("perompak");if(hv.length){const j=hv[RND(0,hv.length-1)];const it=P[j].pw.splice(RND(0,P[j].pw.length-1),1)[0];hitTok(P[j]);$("msg").textContent=`🏴‍☠️ ${P[j].name} kehilangan ${it.n}!`;renderPw()}else{await backP(rp(),2)}await sleep(900)}},
 {n:"🌀 PORTAL KACAU",c:"#4fc3f7",d:"Dua pemain acak bertukar posisi!",f:async()=>{const a=rp();let b=rp();while(b==a)b=rp();snd("portal");hitTok(P[a]);hitTok(P[b]);[P[a].n,P[b].n]=[P[b].n,P[a].n];place(P[a],a);place(P[b],b);$("msg").textContent=`🌀 ${P[a].name} dan ${P[b].name} bertukar posisi!`;await sleep(900)}}
 ];
@@ -960,11 +965,33 @@ const bd=ov.querySelector("#bigdie"),dock=ov.querySelector("#sdock"),who=ov.quer
 const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 const ROT={1:"",6:"rotateY(180deg)",3:"rotateY(-90deg)",4:"rotateY(90deg)",2:"rotateX(-90deg)",5:"rotateX(90deg)"};
 const FT={1:"",6:"rotateY(180deg)",3:"rotateY(90deg)",4:"rotateY(-90deg)",2:"rotateX(90deg)",5:"rotateX(-90deg)"};
-let cube=null,dtx=null;
+let cube=null,dtx=null,dod=null,DF=null;
+function mkD12(){const f=(1+Math.sqrt(5))/2,V=[];for(const a of[-1,1])for(const b of[-1,1])for(const c of[-1,1])V.push([a,b,c]);
+  for(const a of[-1,1])for(const b of[-1,1]){V.push([0,a/f,b*f]);V.push([a/f,b*f,0]);V.push([a*f,0,b/f])}
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],nz=a=>{const l=Math.hypot(...a);return a.map(x=>x/l)};
+  const N=[];for(const a of[-1,1])for(const b of[-1,1]){N.push([0,a,b*f]);N.push([a,b*f,0]);N.push([a*f,0,b])}
+  let best=null;const N2=[];for(const a of[-1,1])for(const b of[-1,1]){N2.push([0,a*f,b]);N2.push([a,0,b*f]);N2.push([a*f,b,0])}
+  for(const cand of[N,N2]){const ok=cand.every(n=>{const d=V.map(v=>dot(nz(n),v)).sort((x,y)=>y-x);return Math.abs(d[0]-d[4])<1e-6&&d[4]-d[5]>.1});if(ok){best=cand;break}}
+  const sc=.5/Math.sqrt(3),out=[],used=new Set(),num=[];let k=1;
+  best.forEach((n0,i)=>{if(used.has(i))return;const j=best.findIndex((m,q)=>q!=i&&Math.abs(dot(nz(m),nz(n0))+1)<1e-6);used.add(i);used.add(j);num[i]=k;num[j]=13-k;k++});
+  best.forEach((n0,i)=>{const n=nz(n0),vs=V.filter(v=>dot(v,n)>dot(V[0],V[0])*0+Math.max(...V.map(w=>dot(w,n)))-1e-6);
+    const c=vs.reduce((a,v)=>[a[0]+v[0]/5,a[1]+v[1]/5,a[2]+v[2]/5],[0,0,0]);let u=nz([vs[0][0]-c[0],vs[0][1]-c[1],vs[0][2]-c[2]]);const w=cr(n,u);
+    const p2=vs.map(v=>{const d=[v[0]-c[0],v[1]-c[1],v[2]-c[2]];return[dot(d,u),dot(d,w)]}).sort((a,b)=>Math.atan2(a[1],a[0])-Math.atan2(b[1],b[0]));
+    const R=Math.hypot(...p2[0]),inr=dot(c,n)*sc;out.push({n:num[i],u,w,nn:n,p2,R,inr})});return{faces:out,sc}}
+function buildD12(){if(!DF)DF=mkD12();bd.innerHTML='<div class="tilt"><div class="spinner"><div class="cube dod"></div></div></div><div id="dtxt"></div>';dod=bd.querySelector(".cube");dtx=bd.querySelector("#dtxt");cube=null;
+  DF.faces.forEach(F=>{const e=document.createElement("div");e.className="f12";const W=2*F.R*DF.sc*1.02,m=F.u,w=F.w,n=F.nn;
+    e.style.width=e.style.height="calc(var(--s) * "+W.toFixed(4)+")";e.style.left=e.style.top="calc(50% - var(--s) * "+(W/2).toFixed(4)+")";
+    const pts=sc=>F.p2.map(p=>((p[0]/(F.R*1.02)*sc+1)*50).toFixed(2)+"% "+((p[1]/(F.R*1.02)*sc+1)*50).toFixed(2)+"%").join(",");
+    e.style.clipPath="polygon("+pts(1)+")";
+    e.style.transform="matrix3d("+[m[0],m[1],m[2],0,w[0],w[1],w[2],0,n[0],n[1],n[2],0,0,0,0,1].join(",")+") translateZ(calc(var(--s) * "+F.inr.toFixed(4)+"))";
+    e.innerHTML='<b style="clip-path:polygon('+pts(.9)+')"><span>'+F.n+'</span></b>';dod.appendChild(e)})}
+function face12(v){if(!dod)buildD12();bd.classList.remove("txt");const F=DF.faces.find(x=>x.n==v);if(!F)return;const m=F.u,w=F.w,n=F.nn;
+  dod.style.transform="matrix3d("+[m[0],w[0],n[0],0,m[1],w[1],n[1],0,m[2],w[2],n[2],0,0,0,0,1].join(",")+")"}
 function build3d(){bd.innerHTML='<div class="tilt"><div class="spinner"><div class="cube"></div></div></div><div id="dtxt"></div>';cube=bd.querySelector(".cube");dtx=bd.querySelector("#dtxt");
   for(let v=1;v<=6;v++){const f=document.createElement("div");f.className="f";f.style.transform=FT[v]+" translateZ(calc(var(--s) / 2))";for(let i=0;i<9;i++){const e=document.createElement("i");if(PIPS[v].includes(i))e.className="p";f.appendChild(e)}cube.appendChild(f)}}
-function face(v){if(!cube)build3d();bd.classList.remove("txt");cube.style.transform=ROT[v]}
-function setFace(t){t=(t||"").trim();const i="\u2680\u2681\u2682\u2683\u2684\u2685".indexOf(t);if(i>=0)face(i+1);else{if(!cube)build3d();bd.classList.add("txt");dtx.textContent=t||"?"}}
+function face(v){if(HM&&ENDN==200){face12(v);return}if(dod||!cube)build3d();bd.classList.remove("txt");cube.style.transform=ROT[v]}
+function setFace(t){t=(t||"").trim();if(ENDN==200){const q=parseInt(t,10);if(/^\d+$/.test(t)&&q>=1&&q<=12){face12(q);return}if(!dod)buildD12();bd.classList.add("txt");dtx.textContent=t||"?";return}
+  const i="\u2680\u2681\u2682\u2683\u2684\u2685".indexOf(t);if(i>=0){face(i+1)}else{if(dod||!cube)build3d();bd.classList.add("txt");dtx.textContent=t||"?"}}
 function faceOld(v){bd.className=bd.className.replace(/\btxt\b/,"").trim();bd.innerHTML="";for(let i=0;i<9;i++){const e=document.createElement("i");if(PIPS[v].includes(i))e.className="p";bd.appendChild(e)}}
 function setFaceOld(t){t=(t||"").trim();const i="\u2680\u2681\u2682\u2683\u2684\u2685".indexOf(t);if(i>=0)face(i+1);else{bd.classList.add("txt");bd.textContent=t||"?"}}
 new MutationObserver(()=>setFace($("die").textContent)).observe($("die"),{childList:true,characterData:true,subtree:true});
@@ -984,7 +1011,7 @@ function renderDock(){const p=P[cur];if(!p)return;dock.innerHTML="";
     dock.appendChild(skillBtn(d.n+(cd>0?" \u23f3"+cd:""),{n:d.n,d:d.d+" (bisa dipakai lagi setelah 3 giliranmu)",inn:true},()=>useInnate(cur),"inn",cd>0))}}
 const mkSig=()=>{const p=P[cur];return p?[cur,p.icd||0,p.pw.map(w=>w.id).join(","),p.extraCap||0,p.mimic||"",p.totem?1:0].join("|"):""};
 function show(){clearTimeout(hideT);rolling=false;ov.classList.remove("rolling");bd.classList.remove("tumble","land");
-  face(1+Math.floor(Math.random()*6));const p=P[cur];
+  face(1+Math.floor(Math.random()*SIDES));const p=P[cur];
   who.innerHTML='<span class="dot" style="background:'+p.c+'"></span>Giliran '+p.name;
   renderDock();sig=mkSig();ov.classList.add("on");shown=true}
 function hide(){ov.classList.remove("on");shown=false}
@@ -1038,18 +1065,18 @@ const zbehind=()=>{let t=0;P.forEach((q,j)=>{if(q.n<P[t].n)t=j});return t};
 const zrnd=()=>RND(0,P.length-1);
 EVENTS.push(
 /* COMMON (ringan / berkah) */
-{n:"\ud83c\udf08 PELANGI",c:"#ffd180",k:"Berkah",t:"common",d:"Pemain paling belakang maju 3 kotak!",f:async()=>{S_("lucky");const t=zbehind();hitTok(P[t]);await walk(P[t],t,Math.min(99,P[t].n+3));await settle(P[t],t)}},
+{n:"\ud83c\udf08 PELANGI",c:"#ffd180",k:"Berkah",t:"common",d:"Pemain paling belakang maju 3 kotak!",f:async()=>{S_("lucky");const t=zbehind();hitTok(P[t]);await walk(P[t],t,Math.min(ENDN-1,P[t].n+3));await settle(P[t],t)}},
 {n:"\ud83c\udf4e PANEN APEL",c:"#ef9a9a",k:"Berkah",t:"common",d:"Semua pemain pulih 1 hati!",f:async()=>{S_("susu");P.forEach((q,j)=>zheal(j,1));renderBadges()}},
 {n:"\ud83d\udc14 AYAM BERTELUR",c:"#fff59d",k:"Berkah",t:"common",d:"Satu pemain acak mendapat 1 skill biasa!",f:async()=>{const j=zrnd();S_("peti");const g=zgive(j,1);$("msg").textContent=g?"\ud83e\udd5a "+P[j].name+" mendapat 1 skill!":"\ud83c\udf92 Tas "+P[j].name+" penuh!";renderPw();await sleep(900)}},
-{n:"\ud83d\udc3a SERIGALA SETIA",c:"#b0bec5",k:"Berkah",t:"common",d:"Satu pemain acak maju 2 kotak!",f:async()=>{const j=zrnd();S_("lucky");hitTok(P[j]);await walk(P[j],j,Math.min(99,P[j].n+2));await settle(P[j],j)}},
+{n:"\ud83d\udc3a SERIGALA SETIA",c:"#b0bec5",k:"Berkah",t:"common",d:"Satu pemain acak maju 2 kotak!",f:async()=>{const j=zrnd();S_("lucky");hitTok(P[j]);await walk(P[j],j,Math.min(ENDN-1,P[j].n+2));await settle(P[j],j)}},
 /* UNCOMMON */
-{n:"\u26cf TAMBANG EMAS",c:"#ffd54f",k:"Berkah",t:"uncommon",d:"Satu pemain acak maju 4 kotak dan mendapat 1 skill!",f:async()=>{const j=zrnd();S_("peti");hitTok(P[j]);await walk(P[j],j,Math.min(99,P[j].n+4));await settle(P[j],j);zgive(j,1);renderPw()}},
+{n:"\u26cf TAMBANG EMAS",c:"#ffd54f",k:"Berkah",t:"uncommon",d:"Satu pemain acak maju 4 kotak dan mendapat 1 skill!",f:async()=>{const j=zrnd();S_("peti");hitTok(P[j]);await walk(P[j],j,Math.min(ENDN-1,P[j].n+4));await settle(P[j],j);zgive(j,1);renderPw()}},
 {n:"\ud83d\udee1 BERKAH PERISAI",c:"#90caf9",k:"Berkah",t:"uncommon",d:"Semua pemain mendapat Perisai (kebal 1x Creeper / hukuman mundur)!",f:async()=>{S_("immortal");fx("shield");P.forEach(q=>{q.shield=true});await sleep(900)}},
-{n:"\ud83e\uddd9 PENYIHIR BAIK",c:"#ce93d8",k:"Berkah",t:"uncommon",d:"Satu pemain acak pulih 3 hati dan maju 2 kotak!",f:async()=>{const j=zrnd();S_("susu");zheal(j,3);renderBadges();await walk(P[j],j,Math.min(99,P[j].n+2));await settle(P[j],j)}},
+{n:"\ud83e\uddd9 PENYIHIR BAIK",c:"#ce93d8",k:"Berkah",t:"uncommon",d:"Satu pemain acak pulih 3 hati dan maju 2 kotak!",f:async()=>{const j=zrnd();S_("susu");zheal(j,3);renderBadges();await walk(P[j],j,Math.min(ENDN-1,P[j].n+2));await settle(P[j],j)}},
 /* RARE */
 {n:"\ud83d\udc8e HARTA KARUN",c:"#80deea",k:"Berkah",t:"rare",d:"Satu pemain acak mendapat 2 skill dan pulih 2 hati!",f:async()=>{const j=zrnd();S_("peti");fx("peti");zgive(j,2);zheal(j,2);renderPw();renderBadges();await sleep(1000)}},
-{n:"\ud83c\udf09 JEMBATAN PELANGI",c:"#f48fb1",k:"Berkah",t:"rare",d:"Pemain di bawah rata-rata maju 6 kotak!",f:async()=>{S_("lucky");const av=P.reduce((a,q)=>a+q.n,0)/P.length;for(let j=0;j<P.length;j++)if(P[j].n<av){hitTok(P[j]);await walk(P[j],j,Math.min(99,P[j].n+6));await settle(P[j],j)}}},
-{n:"\ud83e\udd85 ELANG RAKSASA",c:"#a1887f",k:"Berkah",t:"rare",d:"Pemain paling belakang dibawa terbang maju 10 kotak!",f:async()=>{S_("lucky");const t=zbehind();hitTok(P[t]);await walk(P[t],t,Math.min(99,P[t].n+10));await settle(P[t],t)}},
+{n:"\ud83c\udf09 JEMBATAN PELANGI",c:"#f48fb1",k:"Berkah",t:"rare",d:"Pemain di bawah rata-rata maju 6 kotak!",f:async()=>{S_("lucky");const av=P.reduce((a,q)=>a+q.n,0)/P.length;for(let j=0;j<P.length;j++)if(P[j].n<av){hitTok(P[j]);await walk(P[j],j,Math.min(ENDN-1,P[j].n+6));await settle(P[j],j)}}},
+{n:"\ud83e\udd85 ELANG RAKSASA",c:"#a1887f",k:"Berkah",t:"rare",d:"Pemain paling belakang dibawa terbang maju 10 kotak!",f:async()=>{S_("lucky");const t=zbehind();hitTok(P[t]);await walk(P[t],t,Math.min(ENDN-1,P[t].n+10));await settle(P[t],t)}},
 /* DOOM (jarang) */
 {n:"\ud83c\udf11 BLOOD MOON",c:"#e53935",k:"Doom",t:"doom",d:"Semua pemain mundur 5 kotak dan kehilangan 1 hati!",f:async()=>{BM();for(let j=0;j<P.length;j++){await jb(j,5);hurt(j,1)}}},
 {n:"\ud83d\udd78 JARING LABA-LABA",c:"#e53935",k:"Doom",t:"doom",d:"Pemain terdepan mundur 4 kotak dan membeku 1 turn!",f:async()=>{const l=lead();S_("pintu");await jb(l,4);P[l].skip=(P[l].skip||0)+1}},
@@ -1061,7 +1088,7 @@ EVENTS.push(
 {n:"\ud83d\udc7c MEET THE CREATOR",c:"#fff3b0",k:"Heavenly",t:"heavenly",d:"Satu pemain akan bertemu sang Pencipta...",f:async()=>{await XEV.creator(zrnd())}},
 {n:"\ud83d\udcab CAHAYA PENYEMBUH",c:"#b9f6ca",k:"Heavenly",t:"heavenly",d:"Semua pemain pulih penuh dan mendapat 1 skill!",f:async()=>{S_("susu");fx("peti");P.forEach((q,j)=>{zheal(j,99);zgive(j,1)});renderBadges();renderPw();await sleep(1200)}},
 {n:"\ud83d\udc7c MALAIKAT PELINDUNG",c:"#fff9c4",k:"Heavenly",t:"heavenly",d:"Semua pemain kebal mundur selama 2 ronde dan mendapat Perisai!",f:async()=>{S_("immortal");fx("shield");P.forEach(q=>{q.immortal=Math.max(q.immortal||0,2);q.shield=true});await sleep(1200)}},
-{n:"\ud83d\udc51 BERKAH SANG RAJA",c:"#ffe082",k:"Heavenly",t:"heavenly",d:"Pemain paling belakang maju 15 kotak dan mendapat 1 skill OP!",f:async()=>{S_("mahkota");const t=zbehind();hitTok(P[t]);await walk(P[t],t,Math.min(99,P[t].n+15));await settle(P[t],t);zOP(t,1);await sleep(900)}}
+{n:"\ud83d\udc51 BERKAH SANG RAJA",c:"#ffe082",k:"Heavenly",t:"heavenly",d:"Pemain paling belakang maju 15 kotak dan mendapat 1 skill OP!",f:async()=>{S_("mahkota");const t=zbehind();hitTok(P[t]);await walk(P[t],t,Math.min(ENDN-1,P[t].n+15));await settle(P[t],t);zOP(t,1);await sleep(900)}}
 );
 const TIERS=[{id:"common",n:"COMMON",c:"#b0bec5",w:38},{id:"uncommon",n:"UNCOMMON",c:"#69f0ae",w:30},{id:"rare",n:"RARE",c:"#4fc3f7",w:18},{id:"heavenly",n:"HEAVENLY",c:"#ffe082",w:8},{id:"doom",n:"DOOM",c:"#e53935",w:4},{id:"calamity",n:"CALAMITY",c:"#b71c1c",w:2}];
 async function rollTier(){
@@ -1148,7 +1175,7 @@ grantNM=async function(p,i){if(!CFG.on)return _gnm(p,i);const lv=p.lastLv;
   if(p.pw.length>=cap){$("msg").textContent="🎒 "+p.name+" tasnya penuh, "+w.n+" hangus!";await sleep(1400);return}
   p.pw.push(w);$("msg").textContent="🎁 "+p.name+" dapat skill "+w.n+": "+w.d;await sleep(1800);renderPw()};
 const _gm=genMap;
-genMap=function(){if(!CFG.on)return _gm();const U=new Set([1,100]),l={},s={};
+genMap=function(){if(!CFG.on||HM)return _gm();const U=new Set([1,100]),l={},s={};
   const add=(o,up)=>{for(let t=0;t<300;t++){const a=RND(2,98),d=RND(10,45),b=up?a+d:a-d;
     if(b<2||b>99||U.has(a)||U.has(b)||Math.floor((a-1)/10)==Math.floor((b-1)/10))continue;U.add(a);U.add(b);o[a]=b;return}};
   for(let i=0;i<CFG.lad;i++)add(l,true);for(let i=0;i<CFG.snk;i++)add(s,false);return[l,s]};
@@ -1173,7 +1200,7 @@ function fillDbg(){dp.innerHTML="";const row=(t)=>{const d=document.createElemen
   mkBtn("❤ Pulihkan HP semua",()=>{P.forEach(q=>{q.hp=CFG.maxHp});renderBadges()},r2,"",sm);
   mkBtn("🎁 Skill acak untuk pemain giliran",()=>{const p=P[cur];if(!p||busy||p.pw.length>=2+(p.extraCap||0))return;const NM=POW.filter(x=>!x.op);p.pw.push(NM[RND(0,NM.length-1)]);renderPw()},r2,"",sm);
   const r3=row("Pindah pemain giliran ke kotak:");const inp=document.createElement("input");inp.type="number";inp.min=0;inp.max=99;inp.value=50;inp.style.cssText="width:56px;font:inherit";r3.appendChild(inp);
-  mkBtn("Go",()=>{const p=P[cur],n=Math.max(0,Math.min(99,+inp.value||0));if(!p||busy)return;p.n=n;place(p,cur);renderList()},r3,"",sm);
+  mkBtn("Go",()=>{const p=P[cur],n=Math.max(0,Math.min(ENDN-1,+inp.value||0));if(!p||busy)return;p.n=n;place(p,cur);renderList()},r3,"",sm);
   row("👑 God Mode:");const r4=row();
   P.forEach((q,i)=>{const l=document.createElement("label");l.className="sc";const c=document.createElement("input");c.type="checkbox";c.checked=!!CFG.god[i];c.onchange=()=>{CFG.god[i]=c.checked;renderBadges()};l.appendChild(c);l.appendChild(document.createTextNode(q.name));r4.appendChild(l)})}
 setInterval(()=>{const s=CFG.on&&CFG.debug&&!$("game").hidden&&P.length;db.style.display=s?"block":"none";if(!s)dp.style.display="none"},400);
@@ -1367,7 +1394,7 @@ function zOP(j,n){
   OP.forEach(w=>P[j].pw.push(w));renderPw();return OP;
 }
 async function zUp(j,n){
-  const q=P[j];hitTok(q);const to=Math.min(99,q.n+n);
+  const q=P[j];hitTok(q);const to=Math.min(ENDN-1,q.n+n);
   if(to>q.n){q.n=to;place(q,j);try{sfxUp()}catch(e){}await sleep(650);await settle(q,j)}
 }
 async function zKill(j,txt){
@@ -1563,7 +1590,7 @@ function syncHm(){document.querySelectorAll(".hmbtn").forEach(b=>{b.textContent=
 function mkHm(){
   const w=document.createElement("div");w.className="hmw";
   const b=document.createElement("button");b.className="btn hmbtn";b.onclick=()=>{HM=!HM;syncHm()};
-  const t=document.createElement("small");t.textContent="HP 7 • kuis 10/20/35 dtk • dadu telat 10 dtk = beku 1 giliran • Doom & Calamity +15%";
+  const t=document.createElement("small");t.textContent="Papan 200 kotak • dadu D12 3D • HP 7 • kuis 10/20/35 dtk • dadu telat 10 dtk = beku 1 giliran • Doom & Calamity +15%";
   w.appendChild(b);w.appendChild(t);return w;
 }
 $("start").after(mkHm());
@@ -1675,9 +1702,9 @@ function fireTick(){FIRE=FIRE.filter(f=>f.until>TN)}
 
 async function useLeg(id,p,i){
   const others=P.map((x,j)=>j).filter(j=>j!==i);
-  const won=()=>{if(p.n==100){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return true}return false};
+  const won=()=>{if(p.n==ENDN){$("msg").innerHTML=`🏆 ${p.name} MENANG!`;return true}return false};
   if(id=="tdr"){
-    const from=p.n,to=from+10;if(to>100)return false;
+    const from=p.n,to=from+10;if(to>ENDN)return false;
     lfx(id);$("msg").textContent=`🔥 ${p.name} menyalakan TDR-3000!`;await sleep(700);
     for(let s=from;s<to;s++){if(s>=1)addFire(s,i);p.n=s+1;place(p,i);try{sfxStep()}catch(e){}await sleep(160)}
     await settle(p,i);renderList();if(won())return"win";
@@ -1695,7 +1722,7 @@ async function useLeg(id,p,i){
     return true;
   }
   if(id=="excal"){
-    const from=p.n,to=from+6;if(to>100)return false;
+    const from=p.n,to=from+6;if(to>ENDN)return false;
     const hit=others.filter(j=>P[j].n>from&&P[j].n<=to);
     lfx(id);$("msg").textContent=`⚔ ${p.name} menebas dengan Excalibur!`;await sleep(600);
     await walk(p,i,to);await settle(p,i);renderList();if(won())return"win";
